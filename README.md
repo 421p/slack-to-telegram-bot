@@ -2,7 +2,7 @@
 Bot for forwarding slack messages to telegram.
 
 ## Usage
-Tested on Python 3.5.
+Tested on PHP 7.1.
 
 For configuration, set the following environment variables:
 ```
@@ -14,20 +14,13 @@ For the target chat, see http://stackoverflow.com/questions/32423837/telegram-bo
 
 Run with:
 ```
-python bot.py # <- You could not have guessed that!
-```
-You can also build and use the docker image:
-```
-docker build -t <docker-image-url:docker-image-tag> .
-docker push <docker-image-url:docker-image-tag>
-docker run -d --name slack-to-telegram-bot --restart=always -e TELEGRAM_TOKEN='$TELEGRAM_TOKEN' -e TELEGRAM_TARGET='$TELEGRAM_TARGET' -e SLACK_TOKEN='$SLACK_TOKEN' <docker-image-url:docker-image-tag>
+php bot.php # <- You could not have guessed that!
 ```
 
 ## Depencencies
-- [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)
-- [slackclient](https://github.com/slackapi/python-slackclient)
+- [slackclient](https://github.com/sagebind/slack-client)
 
-Install the dependencies via pip: `pip install -r requirements.txt`.
+Install the dependencies via composer: `composer install`.
 
 ## License
 Licensed under the [Unlicense](http://unlicense.org/).

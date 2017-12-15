@@ -1,0 +1,21 @@
+{
+    "name": "421p/slack-to-telegram-bot",
+    "type": "project",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "authors": [
+        {
+            "name": "Andrii Bakal",
+            "email": "andrew.bakal@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Tarantool\\" : "src"
+        }
+    },
+    "require": {
+        "coderstephen/slack-client": "dev-master",
+        "beberlei/assert": "dev-master"
+    }
+}
