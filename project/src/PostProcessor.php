@@ -2,35 +2,107 @@
 
 namespace Tarantool;
 
+use React\Promise\Deferred;
+use React\Promise\Promise;
+use Slack\RealTimeClient;
+
 class PostProcessor
 {
+    private $mapping = [];
+    private $logger;
+    private $client;
 
-    private static $mapping = [];
+    public function __construct(RealTimeClient $client, callable $logger)
+    {
+        $this->client = $client;
+        $this->logger = $logger;
+    }
 
-    public static function loadMappings()
+    public function loadMappings()
     {
         if (($mpp = getenv('SLACK_CUSTOM_MAPPING')) !== null) {
             $tokens = array_map('trim', explode(',', $mpp));
 
-            echo 'Loading tokens: '.$mpp.PHP_EOL;
+            $this->log('Loading tokens: '.$mpp);
 
             foreach ($tokens as $token) {
                 [$key, $value] = explode(':', $token);
 
-                self::$mapping[$key] = $value;
+                $this->mapping[$key] = $value;
             }
 
-            echo 'Loaded mapping:'.PHP_EOL;
-            echo json_encode(self::$mapping, JSON_PRETTY_PRINT).PHP_EOL;
+            $this->log('Loaded mapping:'.PHP_EOL.json_encode($this->mapping, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         }
     }
 
-    public static function process(string $message): string
+    public function process(string $message): Promise
     {
-        if (count(self::$mapping) > 0) {
-            $message = str_replace(array_keys(self::$mapping), array_values(self::$mapping), $message);
+        $defer = new Deferred();
+
+        $this->processMentions($message)->then(function ($message) use ($defer) {
+            $defer->resolve($this->applyMappings($message));
+        }, function ($err) use ($defer) {
+            $defer->reject($err);
+        });
+
+        return $defer->promise();
+    }
+
+    private function processMentions(string $message): Promise
+    {
+        $defer = new Deferred();
+
+        preg_match_all('/<@([^<>]+)>/', $message, $matches);
+
+        $rawMentions = $matches[0];
+        $mentions = $matches[1];
+
+        if (count($mentions) === 0) {
+            $defer->resolve($message);
+        } else {
+            \React\Promise\all(array_map(\Closure::fromCallable([$this, 'resolveName']), $mentions))->then(
+                function (array $names) use ($defer, $message, $rawMentions) {
+                    $defer->resolve(str_replace(
+                        $rawMentions,
+                        array_map(function ($name) {
+                            return '@'.$name;
+                        }, $names),
+                        $message
+                    ));
+                }
+                ,
+                function ($err) use ($defer) {
+                    $defer->reject($err);
+                }
+            );
         }
 
-        return $message;
+        return $defer->promise();
+    }
+
+    private function resolveName(string $id): Promise
+    {
+        $defer = new Deferred();
+
+        $this->client->apiCall('users.info', ['user' => $id])->then(
+            function ($user) use ($defer) {
+                $defer->resolve($user['user']['name']);
+            },
+            function ($err) use ($defer) {
+                $defer->reject(new \Exception('Error!'.PHP_EOL.json_encode($err, JSON_PRETTY_PRINT)));
+            }
+        );
+
+        return $defer->promise();
+    }
+
+    private function applyMappings(string $message): string
+    {
+        return count($this->mapping) > 0 ? str_replace(array_keys($this->mapping), array_values($this->mapping), $message) : $message;
+    }
+
+    private function log(string $data)
+    {
+        ($this->logger)($data);
     }
 }

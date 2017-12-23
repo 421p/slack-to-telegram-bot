@@ -3,6 +3,7 @@
     "type": "project",
     "license": "MIT",
     "minimum-stability": "dev",
+    "prefer-stable": true,
     "authors": [
         {
             "name": "Andrii Bakal",
@@ -15,7 +16,7 @@
         }
     },
     "require": {
-        "coderstephen/slack-client": "dev-master",
-        "beberlei/assert": "dev-master"
+        "coderstephen/slack-client": "0.3.0",
+        "beberlei/assert": "^2.8.1"
     }
 }
